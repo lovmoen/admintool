@@ -50,18 +50,20 @@ win32 {
     RC_FILE = sourceadmin.rc
     LIBS += -lws2_32
     LIBS += -lIPHlpApi
+    INCLUDEPATH += $$PWD/thirdparty/libmaxminddb
+    DEPENDPATH += $$PWD/thirdparty/libmaxminddb
 }
 macx {
     ICON = icons/icon.icns
     bundle.files = $$PWD/GeoLite2-Country.mmdb $$PWD/commands.xml $$PWD/app_list_map.ini
     bundle.path = Contents/MacOS
     QMAKE_BUNDLE_DATA += bundle
+    INCLUDEPATH += $$PWD/thirdparty/libmaxminddb
+    DEPENDPATH += $$PWD/thirdparty/libmaxminddb
 }
 
 INCLUDEPATH += $$PWD/thirdparty/miniupnpc
-INCLUDEPATH += $$PWD/thirdparty/libmaxminddb
 DEPENDPATH += $$PWD/thirdparty/miniupnpc
-DEPENDPATH += $$PWD/thirdparty/libmaxminddb
 
 DISTFILES += \
     GeoLite2-Country.mmdb
@@ -69,4 +71,4 @@ DISTFILES += \
 win32: LIBS += -L$$PWD/thirdparty/miniupnpc/lib/win/ -lminiupnpc -L$$PWD/thirdparty/libmaxminddb/lib/win/ -llibmaxminddb
 macx: LIBS += -L$$PWD/thirdparty/miniupnpc/lib/mac/ -lminiupnpc -L$$PWD/thirdparty/libmaxminddb/lib/mac/ -lmaxminddb
 unix:!macx: QMAKE_LFLAGS += -Wl,--rpath=\\\$\$ORIGIN/lib
-unix:!macx: LIBS += -L$$PWD/thirdparty/miniupnpc/lib/linux/ -lminiupnpc -L$$PWD/thirdparty/libmaxminddb/lib/linux/ -lmaxminddb
+unix:!macx: LIBS += -L$$PWD/thirdparty/miniupnpc/lib/linux/ -lminiupnpc -lmaxminddb

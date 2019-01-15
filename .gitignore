@@ -31,3 +31,10 @@ release*/
 [Dd]esktop.ini
 [Tt]humbs.db
 package/
+
+# Generated
+ui_*
+
+# vscode
+c_cpp_properties.json
+tasks.json
