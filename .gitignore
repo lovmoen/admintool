@@ -39,3 +39,6 @@ ui_*
 c_cpp_properties.json
 tasks.json
 .vscode/
+
+# Test data
+servers.json
