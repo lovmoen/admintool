@@ -12,7 +12,7 @@ class LogHandler: public QObject
 {
     Q_OBJECT
 public:
-    LogHandler(MainWindow *);
+    LogHandler(MainWindow *, MainTask*);
     ~LogHandler();
     void createBind(quint16);
     void removeServer(ServerInfo *);
@@ -43,6 +43,7 @@ private:
     QUdpSocket *logsocket;
     QList<ServerInfo *> logList;
     MainWindow *pMain;
+    MainTask* pMainTask;
     QThread workerThread;
     Worker *worker;
     QNetworkAccessManager *manager;

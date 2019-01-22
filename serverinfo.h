@@ -10,6 +10,7 @@
 #include "customitems.h"
 
 class MainWindow;
+class MainTask;
 
 enum QueryState
 {
@@ -57,6 +58,7 @@ public:
     bool isEqual(ServerInfo *)const;
     void cleanHashTable();
     void GetCountryFlag();
+    void GetCountryName();
 public:
     bool haveInfo;
     qint8 protocol;
@@ -91,6 +93,7 @@ public:
     QList<int> pingList;
     quint16 lastPing;
     quint16 avgPing;
+    QString countryName;
     QImage countryFlag;
     QueryState queryState;
     quint8 currentPlayers;
@@ -103,15 +106,17 @@ class HostQueryResult : public QObject
 public slots:
     void HostInfoResolved(QHostInfo);
 public:
-    HostQueryResult(ServerInfo *p, MainWindow *main, ServerTableIndexItem *item)
+    HostQueryResult(ServerInfo *p, MainWindow *main, MainTask* task, ServerTableIndexItem *item)
     {
         info = p;
         id = item;
         mainWindow = main;
+        mainTask = task;
     }
 
 private:
     MainWindow *mainWindow;
+    MainTask* mainTask;
     ServerTableIndexItem *id;
     ServerInfo *info;
 

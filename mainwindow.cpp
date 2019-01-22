@@ -25,7 +25,7 @@ MainWindow::MainWindow(QWidget *parent) :
     settings->SetDefaultSettings();
     settings->ReadSettings();
     settings->GetCtxCommands();
-    pLogHandler = new LogHandler(this);
+    pLogHandler = new LogHandler(this, NULL);
     pLogHandler->createBind(u16logPort);
 
     if(this->ui->browserTable->rowCount() > 0)
@@ -137,13 +137,13 @@ ServerInfo *MainWindow::AddServerToList(QString server, AddServerError *pError)
 
     if(isIP)
     {
-        InfoQuery *infoQuery = new InfoQuery(this);
-        infoQuery->query(&info->host, info->port, id);
+        InfoQuery *infoQuery = new InfoQuery(this, NULL);
+        infoQuery->query(&info->host, info->port, id, NULL);
     }
     else
     {
         //Resolve Address
-        HostQueryResult *res = new HostQueryResult(info, this, id);
+        HostQueryResult *res = new HostQueryResult(info, this, NULL, id);
         QHostInfo::lookupHost(info->hostname, res, SLOT(HostInfoResolved(QHostInfo)));
     }
     return info;

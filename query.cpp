@@ -1,6 +1,7 @@
 #include "query.h"
 #include "worker.h"
 #include "mainwindow.h"
+#include "maintask.h"
 #include <QDateTime>
 
 const qint32 k_nAppIDTheShip = 2400;
@@ -325,14 +326,22 @@ InfoReply::InfoReply(QByteArray response, qint64 ping)
     }
 }
 
-InfoQuery::InfoQuery(MainWindow *main)
+InfoQuery::InfoQuery(MainWindow *main, MainTask* mainTask)
 {
     Worker *worker = new Worker;
     worker->moveToThread(&workerThread);
     connect(&workerThread, &QThread::finished, worker, &Worker::deleteLater);
     connect(&workerThread, &QThread::finished, this, &InfoQuery::deleteLater);
     connect(this, &InfoQuery::query, worker, &Worker::getServerInfo);
-    connect(worker, &Worker::serverInfoReady, main, &MainWindow::ServerInfoReady);
+
+    if (main)
+    {
+        connect(worker, &Worker::serverInfoReady, main, &MainWindow::ServerInfoReady);
+    }
+    else if (mainTask)
+    {
+        connect(worker, &Worker::serverInfoReady, mainTask, &MainTask::ServerInfoReady);
+    }
 
     workerThread.start();
 }
@@ -360,15 +369,24 @@ InfoReply *GetInfoReply(QHostAddress host, quint16 port)
     return new InfoReply(response, ping);
 }
 
-PlayerQuery::PlayerQuery(MainWindow *main)
+PlayerQuery::PlayerQuery(MainWindow *main, MainTask* mainTask)
 {
     pMain = main;
+    pMainTask = mainTask;
     this->worker = new Worker;
     this->worker->moveToThread(&workerThread);
     connect(&workerThread, &QThread::finished, this, &PlayerQuery::deleteLater);
     connect(&workerThread, &QThread::finished, this->worker, &Worker::deleteLater);
     connect(this, &PlayerQuery::query, this->worker, &Worker::getPlayerInfo);
-    connect(this->worker, &Worker::playerInfoReady, main, &MainWindow::PlayerInfoReady);
+
+    if (main)
+    {
+        connect(this->worker, &Worker::playerInfoReady, main, &MainWindow::PlayerInfoReady);
+    }
+    else if (mainTask)
+    {
+        connect(this->worker, &Worker::playerInfoReady, mainTask, &MainTask::PlayerInfoReady);
+    }
 
     workerThread.start();
 }
@@ -377,8 +395,16 @@ PlayerQuery::~PlayerQuery()
     workerThread.quit();
     workerThread.wait();
 
-    if(this == pMain->pPlayerQuery)
-        pMain->pPlayerQuery = NULL;
+    if (pMain)
+    {
+        if(this == pMain->pPlayerQuery)
+            pMain->pPlayerQuery = NULL;
+    }
+    else if (pMainTask)
+    {
+        if(this == pMainTask->pPlayerQuery)
+            pMainTask->pPlayerQuery = NULL;
+    }
 }
 
 QList<PlayerInfo> *GetPlayerReply(QHostAddress host, quint16 port)
@@ -442,15 +468,24 @@ QList<PlayerInfo> *GetPlayerReply(QHostAddress host, quint16 port)
     return list;
 }
 
-RulesQuery::RulesQuery(MainWindow *main)
+RulesQuery::RulesQuery(MainWindow *main, MainTask* mainTask)
 {
     pMain = main;
+    pMainTask = mainTask;
     this->worker = new Worker;
     this->worker->moveToThread(&workerThread);
     connect(&workerThread, &QThread::finished, this, &RulesQuery::deleteLater);
     connect(&workerThread, &QThread::finished, this->worker, &Worker::deleteLater);
     connect(this, &RulesQuery::query, this->worker, &Worker::getRulesInfo);
-    connect(this->worker, &Worker::rulesInfoReady, main, &MainWindow::RulesInfoReady);
+
+    if (main)
+    {
+        connect(this->worker, &Worker::rulesInfoReady, main, &MainWindow::RulesInfoReady);
+    }
+    else if (mainTask)
+    {
+        connect(this->worker, &Worker::rulesInfoReady, mainTask, &MainTask::RulesInfoReady);
+    }
 
     workerThread.start();
 }
@@ -459,8 +494,16 @@ RulesQuery::~RulesQuery()
     workerThread.quit();
     workerThread.wait();
 
-    if(this == pMain->pRulesQuery)
-        pMain->pRulesQuery = NULL;
+    if (pMain)
+    {
+        if(this == pMain->pRulesQuery)
+            pMain->pRulesQuery = NULL;
+    }
+    else if (pMainTask)
+    {
+        if(this == pMainTask->pRulesQuery)
+            pMainTask->pRulesQuery = NULL;
+    }
 }
 
 QList<RulesInfo> *GetRulesReply(QHostAddress host, quint16 port)

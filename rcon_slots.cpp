@@ -104,7 +104,7 @@ void MainWindow::rconLogin()
 
     if(info->rcon == NULL)
     {
-        info->rcon = new RconQuery(this, info);
+        info->rcon = new RconQuery(this, NULL, info);
     }
     else if(info->rcon->isAuthed)
     {
@@ -136,7 +136,7 @@ void MainWindow::rconLoginQueued(QList<QueuedCommand>queuedcmds)
 
     if(info->rcon == NULL)
     {
-        info->rcon = new RconQuery(this, info);
+        info->rcon = new RconQuery(this, NULL, info);
     }
     else if(info->rcon->isAuthed)
     {

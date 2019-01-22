@@ -1,5 +1,6 @@
 #include "ui_mainwindow.h"
 #include "mainwindow.h"
+#include "maintask.h"
 #include "customitems.h"
 #include "worker.h"
 #include "query.h"
@@ -31,11 +32,11 @@ void MainWindow::TimedUpdate()
             if(info->queryState == QueryResolveFailed || info->queryState == QueryResolving || info->queryState == QueryRunning)
                 continue;
 
-            InfoQuery *infoQuery = new InfoQuery(this);
+            InfoQuery *infoQuery = new InfoQuery(this, NULL);
 
             info->cleanHashTable();
 
-            infoQuery->query(&info->host, info->port, id);
+            infoQuery->query(&info->host, info->port, id, NULL);
         }
         if(run % 60 == 0)
         {
@@ -87,12 +88,12 @@ void MainWindow::UpdateSelectedItemInfo(bool removeFirst, bool updateRules)
         }
     }
 
-    pPlayerQuery = new PlayerQuery(this);
+    pPlayerQuery = new PlayerQuery(this, NULL);
     pPlayerQuery->query(&info->host, info->port, item);
 
     if(updateRules)
     {
-        pRulesQuery = new RulesQuery(this);
+        pRulesQuery = new RulesQuery(this, NULL);
         pRulesQuery->query(&info->host, info->port, item);
     }
     this->UpdateInfoTable(info);
@@ -361,7 +362,7 @@ void MainWindow::UpdateInfoTable(ServerInfo *info, bool current, QList<RulesInfo
 }
 
 //QUERY INFO READY
-void MainWindow::ServerInfoReady(InfoReply *reply, ServerTableIndexItem *indexCell)
+void MainWindow::ServerInfoReady(InfoReply *reply, ServerTableIndexItem *indexCell, ServerInfo *_)
 {
     QTableWidget *browserTable = this->ui->browserTable;
 

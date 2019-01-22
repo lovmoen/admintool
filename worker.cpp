@@ -3,10 +3,10 @@
 #include "serverinfo.h"
 #include <QString>
 
-void Worker::getServerInfo(QHostAddress *host, quint16 port, ServerTableIndexItem *item)
+void Worker::getServerInfo(QHostAddress *host, quint16 port, ServerTableIndexItem *item, ServerInfo* info)
 {
     InfoReply *reply = GetInfoReply(*host, port);
-    emit serverInfoReady(reply, item);
+    emit serverInfoReady(reply, item, info);
     this->currentThread()->quit();
 }
 

@@ -8,26 +8,12 @@
 #include <QHostAddress>
 #include <QTableWidget>
 #include <QMutableListIterator>
+#include "enums.h"
 #include "query.h"
 #include "serverinfo.h"
 #include "loghandler.h"
 
 class ServerTableIndexItem;
-
-enum AddServerError
-{
-    AddServerError_None,
-    AddServerError_Invalid,
-    AddServerError_AlreadyExists,
-    AddServerError_Hostname,
-};
-
-enum ContextTypes
-{
-    ContextTypeNone,
-    ContextTypeSteamID,
-    ContextTypeName
-};
 
 struct InfoTableItem
 {
@@ -117,7 +103,7 @@ protected:
     bool eventFilter(QObject *object, QEvent *event);
 
 public slots:
-    void ServerInfoReady(InfoReply *, ServerTableIndexItem *);
+    void ServerInfoReady(InfoReply *, ServerTableIndexItem *, ServerInfo *);
     void PlayerInfoReady(QList<PlayerInfo> *, ServerTableIndexItem *);
     void RulesInfoReady(QList<RulesInfo> *, ServerTableIndexItem *);
     void RconAuthReady(ServerInfo *info, QList<QueuedCommand>queuedcmds);

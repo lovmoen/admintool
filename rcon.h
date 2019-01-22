@@ -32,6 +32,7 @@ public:
 
 class ServerInfo;
 class MainWindow;
+class MainTask;
 
 const qint32 rconID = 0x7001;
 
@@ -39,7 +40,7 @@ class RconQuery : public QObject
 {
     Q_OBJECT
 public:
-    RconQuery(MainWindow *main, ServerInfo *info);
+    RconQuery(MainWindow *main, MainTask* mainTask, ServerInfo *info);
     ~RconQuery() {
         if(socket)
             socket->deleteLater();

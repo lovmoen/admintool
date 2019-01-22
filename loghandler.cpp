@@ -1,6 +1,8 @@
 #include "loghandler.h"
 #include "mainwindow.h"
+#include "maintask.h"
 #include "worker.h"
+#include "enums.h"
 #include <QMessageBox>
 #include <QNetworkReply>
 #include <QNetworkInterface>
@@ -13,7 +15,7 @@
 #include <winsock2.h>
 #endif
 
-LogHandler::LogHandler(MainWindow *main)
+LogHandler::LogHandler(MainWindow *main, MainTask* mainTask)
 {
     this->logPort = 0;
     this->manager = NULL;
@@ -23,6 +25,7 @@ LogHandler::LogHandler(MainWindow *main)
     this->pLocalAddress = NULL;
     this->createSocket();
     this->pMain = main;
+    this->pMainTask = mainTask;
     this->findLocalAddress();
 }
 
@@ -139,7 +142,14 @@ void LogHandler::socketReadyRead()
 
     QString logLine = QString(datagram.remove(0, idx+1));
 
-    pMain->parseLogLine(logLine, info);
+    if (pMain)
+    {
+        pMain->parseLogLine(logLine, info);
+    }
+    else if (pMainTask)
+    {
+        pMainTask->parseLogLine(logLine, info);
+    }
 }
 
 void LogHandler::addServer(ServerInfo *info)
@@ -181,7 +191,15 @@ void LogHandler::createBind(quint16 port)
 
     if(!this->logsocket->bind(QHostAddress::AnyIPv4, logPort))
     {
-        QMessageBox::critical(pMain, "Log Handler Error", "Failed to bind to port");
+        if (pMain)
+        {
+            QMessageBox::critical(pMain, "Log Handler Error", "Failed to bind to port");
+        }
+        else if (pMainTask)
+        {
+            pMainTask->displayMessage(ErrorLevel::Critical, "Log Handler Error", "Failed to bind to port");
+        }
+
         return;
     }
 
@@ -209,10 +227,18 @@ void LogHandler::UPnPReady()
             delete this->manager;
             this->manager = NULL;
         }
-        if(pMain->showLoggingInfo)
+
+        if (pMain)
         {
-            QMessageBox::information(this->pMain, "Log Handler", QString("Listening on: %1:%2").arg(this->pExternalIP->toString(), this->szPort));
-            pMain->showLoggingInfo = false;
+            if(pMain->showLoggingInfo)
+            {
+                QMessageBox::information(this->pMain, "Log Handler", QString("Listening on: %1:%2").arg(this->pExternalIP->toString(), this->szPort));
+                pMain->showLoggingInfo = false;
+            }
+        }
+        else if (pMainTask)
+        {
+            pMainTask->displayMessage(ErrorLevel::Information, "Log Handler", QString("Listening on: %1:%2").arg(this->pExternalIP->toString(), this->szPort));
         }
     }
     else if(!this->manager)
@@ -225,7 +251,15 @@ void LogHandler::UPnPReady()
     {
         delete this->manager;
         this->manager = NULL;
-        QMessageBox::critical(this->pMain, "Log Handler Error", QString("Failed to retrieve external IP."));
+
+        if (pMain)
+        {
+            QMessageBox::critical(this->pMain, "Log Handler Error", QString("Failed to retrieve external IP."));
+        }
+        else if (pMainTask)
+        {
+            pMainTask->displayMessage(ErrorLevel::Critical, "Log Handler Error", QString("Failed to retrieve external IP."));
+        }
     }
 }
 

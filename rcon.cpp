@@ -2,8 +2,9 @@
 #include "serverinfo.h"
 #include "worker.h"
 #include "mainwindow.h"
+#include "maintask.h"
 
-RconQuery::RconQuery(MainWindow *main, ServerInfo *info)
+RconQuery::RconQuery(MainWindow *main, MainTask* mainTask, ServerInfo *info)
 {
     this->isAuthed = false;
     this->socket = new QTcpSocket();
@@ -12,9 +13,19 @@ RconQuery::RconQuery(MainWindow *main, ServerInfo *info)
     connect(this->socket, &QTcpSocket::destroyed, this, &RconQuery::deleteLater);
     connect(this->socket, &QTcpSocket::readyRead, this, &RconQuery::socketReadyRead);
     connect(this->socket, &QTcpSocket::disconnected, this, &RconQuery::socketDisconnected);
-    connect(this, &RconQuery::rconAuth, main, &MainWindow::RconAuthReady);
-    connect(this, &RconQuery::rconOutput, main, &MainWindow::RconOutput);
-    connect(this, &RconQuery::rconHistory, main, &MainWindow::AddRconHistory);
+
+    if (main)
+    {
+        connect(this, &RconQuery::rconAuth, main, &MainWindow::RconAuthReady);
+        connect(this, &RconQuery::rconOutput, main, &MainWindow::RconOutput);
+        connect(this, &RconQuery::rconHistory, main, &MainWindow::AddRconHistory);
+    }
+    else if (mainTask)
+    {
+        connect(this, &RconQuery::rconAuth, mainTask, &MainTask::RconAuthReady);
+        connect(this, &RconQuery::rconOutput, mainTask, &MainTask::RconOutput);
+        connect(this, &RconQuery::rconHistory, mainTask, &MainTask::AddRconHistory);
+    }
 }
 
 void RconQuery::socketDisconnected()
