@@ -14,9 +14,13 @@ extern QRegularExpression chatRegex;
 extern QStringList blueTeams;
 extern QStringList redTeams;
 
-MainTask::MainTask(QObject *parent) :
+MainTask::MainTask(QObject *parent, QString serversFile, QUrl hubUrl) :
     QObject(parent)
 {
+    this->serversFile = serversFile;
+    this->hubUrl = hubUrl;
+    this->aboutToInterrupt = false;
+
     pPlayerQuery = NULL;
     pRulesQuery = NULL;
     commandIter = new QMutableListIterator<QString>(this->commandHistory);
@@ -43,13 +47,17 @@ MainTask::~MainTask()
 
 bool MainTask::handleSignal(int signal)
 {
-    displayMessage(ErrorLevel::Information, "Handling signal", QString("SIGNAL: %1").arg(signal));
-
     if (signal == SignalHandler::SIG_INT)
     {
-        displayMessage(ErrorLevel::Information, "Interrupted", "Exiting...");
+        displayMessage(ErrorLevel::Information, "Caught signal", "Interrupted, exiting...");
         emit finished();
         return true;
+    }
+    else if (signal == SignalHandler::SIG_RELOAD)
+    {
+        displayMessage(ErrorLevel::Information, "Caught signal", "Reload, reloading config...");
+        // emit reload();
+        // return true;
     }
 
     return false;
@@ -58,22 +66,25 @@ bool MainTask::handleSignal(int signal)
 void MainTask::initialize()
 {
     displayMessage(ErrorLevel::Information, "Main task", "Starting...");
+    displayMessage(ErrorLevel::Information, "Main task", QString("Reading servers from %1").arg(this->serversFile));
+    displayMessage(ErrorLevel::Information, "Main task", QString("Connecting to SignalR hub at %1").arg(this->hubUrl.toDisplayString()));
 
-    // Initialize code goes here
-    std::ifstream serversFile("servers.json");
+    std::ifstream serversFile(this->serversFile.toStdString());
 
     json j = json::parse(serversFile, nullptr, false);
     if (j.is_discarded())
     {
-        cout << "Error parsing servers.json" << endl;
+        displayMessage(ErrorLevel::Error, "Main task", QString("Error parsing %1").arg(this->serversFile));
     }
     else
     {
-        if (j.size() >= 1)
+        displayMessage(ErrorLevel::Information, "Main task", QString("Found %1 servers to monitor").arg(j.size()));
+
+        for (auto& server : j)
         {
-            json server = j.at(0);
-            cout << server["Name"].get<std::string>().c_str() << endl;
-            addServerEntry(server["Name"].get<std::string>().c_str());
+            QString serverName = server["Name"].get<std::string>().c_str();
+            displayMessage(ErrorLevel::Information, "Main task", QString("Adding server %1").arg(serverName));
+            addServerEntry(serverName);
         }
     }
 
@@ -83,6 +94,7 @@ void MainTask::initialize()
 void MainTask::displayMessage(ErrorLevel level, QString title, QString message)
 {
     QString levelString = "INFO: ";
+    ostream& o = level == ErrorLevel::Information ? cout : cerr;
 
     switch (level)
     {
@@ -99,7 +111,7 @@ void MainTask::displayMessage(ErrorLevel level, QString title, QString message)
             break;
     }
 
-    cout << levelString.toStdString() << title.toStdString() << ": " << message.toStdString() << endl;
+    o << levelString.toStdString() << title.toStdString() << ": " << message.toStdString() << endl;
 
     if (level == ErrorLevel::Critical)
         emit finished();
@@ -323,7 +335,7 @@ void MainTask::ServerInfoReady(InfoReply *reply, ServerTableIndexItem *indexCell
         info->maxPlayers = reply->maxplayers;
         info->currentPlayers = reply->players;
 
-        cout << info->serverNameRich.toStdString() << " " << info->gameName.toStdString() << " " << (int)info->currentPlayers << "/" << (int)info->maxPlayers << " players - Ping: " << info->lastPing << "ms" << endl;
+        cout << info->serverNameRich.toStdString() << " " << info->gameName.toStdString() << " " << info->playerCount.toStdString() << " - Ping: " << info->lastPing << "ms" << endl;
 
         delete reply;
     }
@@ -473,22 +485,20 @@ void MainTask::TimedUpdate()
                 continue;
 
             InfoQuery *infoQuery = new InfoQuery(NULL, this);
-
             info->cleanHashTable();
-
             infoQuery->query(&info->host, info->port, NULL, info);
         }
 
-        // if(run % 60 == 0)
-        // {
-        //     this->UpdateSelectedItemInfo(false, true);
-        //     run = 1;
-        // }
-        // else
-        // {
-        //     this->UpdateSelectedItemInfo(false, false);
-        //     run++;
-        // }
+        if(run % 60 == 0)
+        {
+            //this->UpdateSelectedItemInfo(false, true);
+            run = 1;
+        }
+        else
+        {
+            //this->UpdateSelectedItemInfo(false, false);
+            run++;
+        }
     }
     else
     {
@@ -504,7 +514,6 @@ void MainTask::TimedUpdate()
 
 void MainTask::ConnectSlots()
 {
-
 }
 
 void MainTask::HookEvents()

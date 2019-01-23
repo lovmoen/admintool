@@ -16,7 +16,7 @@ class MainTask : public QObject, public SignalHandler
     Q_OBJECT
 
 public:
-    explicit MainTask(QObject *parent = 0);
+    explicit MainTask(QObject *parent, QString serversFile, QUrl hubUrl);
     ~MainTask();
 
     bool handleSignal(int signal);
@@ -56,6 +56,9 @@ signals:
     void finished();
 
 private:
+    QString serversFile;
+    QUrl hubUrl;
+    bool aboutToInterrupt;
     QTimer *updateTimer;
     void ConnectSlots();
     void HookEvents();
