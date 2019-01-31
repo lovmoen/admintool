@@ -8,8 +8,10 @@
 #include <QHostInfo>
 #include "rcon.h"
 #include "customitems.h"
+#include "serverdefinition.h"
 
 class MainWindow;
+class MainTask;
 
 enum QueryState
 {
@@ -54,9 +56,12 @@ public:
     }
 
     ServerInfo(QString, QueryState, bool);
+    ServerInfo(const ServerDefinition&, QueryState, bool);
+
     bool isEqual(ServerInfo *)const;
     void cleanHashTable();
     void GetCountryFlag();
+    void GetCountryName();
 public:
     bool haveInfo;
     qint8 protocol;
@@ -91,10 +96,18 @@ public:
     QList<int> pingList;
     quint16 lastPing;
     quint16 avgPing;
+    QString countryName;
     QImage countryFlag;
     QueryState queryState;
     quint8 currentPlayers;
     quint8 maxPlayers;
+
+    // Additional members for daemon mode
+    QString poolName;
+    QString name;
+    QString joinSecret;
+    QString authenticationKey;
+    QString gameServerLoginToken;
 };
 
 class HostQueryResult : public QObject
@@ -103,15 +116,17 @@ class HostQueryResult : public QObject
 public slots:
     void HostInfoResolved(QHostInfo);
 public:
-    HostQueryResult(ServerInfo *p, MainWindow *main, ServerTableIndexItem *item)
+    HostQueryResult(ServerInfo *p, MainWindow *main, MainTask* task, ServerTableIndexItem *item)
     {
         info = p;
         id = item;
         mainWindow = main;
+        mainTask = task;
     }
 
 private:
     MainWindow *mainWindow;
+    MainTask* mainTask;
     ServerTableIndexItem *id;
     ServerInfo *info;
 

@@ -24,6 +24,7 @@
 #define A2S_RULES_CHECK 0x45
 
 class MainWindow;
+class MainTask;
 class Worker;
 
 class InfoReply
@@ -74,13 +75,13 @@ class InfoQuery : public QObject
     Q_OBJECT
     QThread workerThread;
 public:
-    InfoQuery(MainWindow *main);
+    InfoQuery(MainWindow *main, MainTask* mainTask);
     ~InfoQuery() {
         workerThread.quit();
         workerThread.wait();
     }
 signals:
-    void query(QHostAddress *, quint16, ServerTableIndexItem *item);
+    void query(QHostAddress *, quint16, ServerTableIndexItem *item, ServerInfo* info);
 };
 
 class PlayerQuery : public QObject
@@ -89,10 +90,11 @@ class PlayerQuery : public QObject
 public:
     QThread workerThread;
     Worker *worker;
-    PlayerQuery(MainWindow *main);
+    PlayerQuery(MainWindow *main, MainTask* mainTask);
     ~PlayerQuery();
 private:
     MainWindow *pMain;
+    MainTask* pMainTask;
 
 signals:
     void query(QHostAddress *, quint16, ServerTableIndexItem *);
@@ -104,10 +106,11 @@ class RulesQuery : public QObject
 public:
     QThread workerThread;
     Worker *worker;
-    RulesQuery(MainWindow *main);
+    RulesQuery(MainWindow *main, MainTask* mainTask);
     ~RulesQuery();
 private:
     MainWindow *pMain;
+    MainTask* pMainTask;
 
 signals:
     void query(QHostAddress *, quint16, ServerTableIndexItem *);
