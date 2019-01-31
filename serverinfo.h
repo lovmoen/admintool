@@ -8,6 +8,7 @@
 #include <QHostInfo>
 #include "rcon.h"
 #include "customitems.h"
+#include "serverdefinition.h"
 
 class MainWindow;
 class MainTask;
@@ -55,6 +56,8 @@ public:
     }
 
     ServerInfo(QString, QueryState, bool);
+    ServerInfo(const ServerDefinition&, QueryState, bool);
+
     bool isEqual(ServerInfo *)const;
     void cleanHashTable();
     void GetCountryFlag();
@@ -98,6 +101,13 @@ public:
     QueryState queryState;
     quint8 currentPlayers;
     quint8 maxPlayers;
+
+    // Additional members for daemon mode
+    QString poolName;
+    QString name;
+    QString joinSecret;
+    QString authenticationKey;
+    QString gameServerLoginToken;
 };
 
 class HostQueryResult : public QObject

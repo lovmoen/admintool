@@ -29,7 +29,9 @@ SOURCES += main.cpp\
     loghandler_slots.cpp \
     util.cpp \
     maintask.cpp \
-    signalhandler.cpp
+    signalhandler.cpp \
+    restclient.cpp \
+    jsonconvert.cpp
 
 HEADERS  += mainwindow.h \
     query.h \
@@ -44,7 +46,10 @@ HEADERS  += mainwindow.h \
     util.h \
     enums.h \
     maintask.h \
-    signalhandler.h
+    signalhandler.h \
+    restclient.h \
+    jsonconvert.h \
+    serverdefinition.h
 
 FORMS    += mainwindow.ui
 

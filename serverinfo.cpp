@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "util.h"
+#include "serverdefinition.h"
 #include <QFile>
 
 #include <maxminddb.h>
@@ -34,6 +35,39 @@ ServerInfo::ServerInfo(QString server, QueryState state, bool isIP)
     }
     this->hostPort = server;
     this->port = address.at(1).toInt();
+}
+
+ServerInfo::ServerInfo(const ServerDefinition& serverDef, QueryState state, bool isIP)
+{
+    this->appId = -1;
+    this->rconPassword = serverDef.rconSecret;
+    this->saveRcon = false;
+    this->rcon = nullptr;
+    this->vac = 0;
+    this->version = "";
+    this->os = "";
+    this->tags = "";
+    this->haveInfo = false;
+    this->queryState = state;
+
+    this->poolName = serverDef.poolName;
+    this->name = serverDef.name;
+    this->joinSecret = serverDef.joinSecret;
+    this->authenticationKey = serverDef.authenticationKey;
+    this->gameServerLoginToken = serverDef.gameServerLoginToken;
+
+    if(isIP)
+    {
+        this->host = QHostAddress(serverDef.ip);
+        this->GetCountryFlag();
+        this->hostPort = QString("%1:%2").arg(serverDef.ip, serverDef.port);
+    }
+    else
+    {
+        this->hostname = serverDef.host;
+        this->hostPort = QString("%1:%2").arg(serverDef.host, serverDef.port);
+    }
+    this->port = serverDef.port.toInt();
 }
 
 bool ServerInfo::isEqual(ServerInfo *other) const

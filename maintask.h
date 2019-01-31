@@ -2,28 +2,25 @@
 #define __MAINTASK_H__
 
 #include <QtCore>
-#include <iostream>
 #include "signalhandler.h"
 #include "enums.h"
 #include "serverinfo.h"
 #include "query.h"
 #include "loghandler.h"
 
-using namespace std;
-
 class MainTask : public QObject, public SignalHandler
 {
     Q_OBJECT
 
 public:
-    explicit MainTask(QObject *parent, QString serversFile, QUrl hubUrl);
+    explicit MainTask(QObject *parent, QString serversFile, QString restEndpoint, bool test);
     ~MainTask();
 
     bool handleSignal(int signal);
     void displayMessage(ErrorLevel level, QString title, QString message);
 
-    AddServerError CheckServerList(QString server);
-    ServerInfo *AddServerToList(QString server, AddServerError *error = nullptr);
+    AddServerError CheckServerList(const ServerDefinition& serverDef);
+    ServerInfo *AddServerToList(const ServerDefinition& serverDef, AddServerError *error = nullptr);
     void parseLogLine(QString, ServerInfo *);
     PlayerQuery *pPlayerQuery;
     RulesQuery *pRulesQuery;
@@ -44,8 +41,10 @@ public slots:
     void AddRconHistory(QString cmd);
     void AddChatHistory(QString txt);
 
+    void RestResponseReady(bool success, QByteArray response);
+
 private slots:
-    void addServerEntry(QString server);
+    void addServerEntry(const ServerDefinition& serverDef);
     void TimedUpdate();
     void sendChat(const QString& message);
     void passwordUpdated(const QString &);
@@ -56,8 +55,9 @@ signals:
     void finished();
 
 private:
+    bool runTests;
     QString serversFile;
-    QUrl hubUrl;
+    QString restEndpoint;
     bool aboutToInterrupt;
     QTimer *updateTimer;
     void ConnectSlots();
@@ -65,6 +65,8 @@ private:
     void runCommand(ServerInfo *, QString);
     void rconLoginQueued(QList<QueuedCommand>);
     void connectToServer();
+    void RunTests();
+    void PublishInfo(ServerInfo* info);
     LogHandler *pLogHandler;
     QList<QString> commandHistory;
     QList<QString> sayHistory;

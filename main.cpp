@@ -36,19 +36,22 @@ enum CommandLineParseResult
 
 struct CmdLineValues
 {
+    bool testOptionSet;
     bool daemonOptionSet;
     QString serversFile;
-    QUrl hubUrl;
+    QString restEndpoint;
 };
 
 CommandLineParseResult parseCommandLine(QCommandLineParser &parser, CmdLineValues* pValues, QString *errorMessage)
 {
+    const QCommandLineOption testOption(QStringList() << "t" << "test", "Run tests");
+    parser.addOption(testOption);
     const QCommandLineOption daemonOption(QStringList() << "d" << "daemon", "Run as daemon");
     parser.addOption(daemonOption);
     const QCommandLineOption serversFileOption(QStringList() << "s" << "servers", "The file to read servers from.", "serversFile");
     parser.addOption(serversFileOption);
-    const QCommandLineOption hubOption(QStringList() << "r" << "hub", "The SignalR hub endpoint to use.", "hubEndpoint");
-    parser.addOption(hubOption);
+    const QCommandLineOption restOption(QStringList() << "r" << "rest", "The rest endpoint to post to.", "restEndpoint");
+    parser.addOption(restOption);
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
 
@@ -64,6 +67,7 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, CmdLineValue
         return CommandLineHelpRequested;
 
     pValues->daemonOptionSet = parser.isSet(daemonOption);
+    pValues->testOptionSet = parser.isSet(testOption);
 
     if (parser.isSet(serversFileOption)) {
         const QString serversFile = parser.value(serversFileOption);
@@ -74,14 +78,14 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, CmdLineValue
         pValues->serversFile = serversFile;
     }
 
-    if (parser.isSet(hubOption)) {
-        const QString hubString = parser.value(hubOption);
-        QUrl hubUrl(hubString);
-        if (!hubUrl.isValid()) {
-            *errorMessage = "Bad URL: " + hubString;
+    if (parser.isSet(restOption)) {
+        const QString restString = parser.value(restOption);
+        QUrl restUrl(restString);
+        if (!restUrl.isValid()) {
+            *errorMessage = "Bad URL: " + restString;
             return CommandLineError;
         }
-        pValues->hubUrl = hubUrl;
+        pValues->restEndpoint = restString;
     }
 
     return CommandLineOk;
@@ -104,7 +108,7 @@ static int RunCLI(int argc, char *argv[])
     parser.setApplicationDescription("A daemon-ized version of SourceAdminTool.");
     CmdLineValues cmdLineValues;
     cmdLineValues.serversFile = "servers.json";
-    cmdLineValues.hubUrl = QUrl("https://localhost/hub");
+    cmdLineValues.restEndpoint = "http://localhost:51347/api/gameserver";
     QString errorMessage;
     switch (parseCommandLine(parser, &cmdLineValues, &errorMessage))
     {
@@ -122,7 +126,7 @@ static int RunCLI(int argc, char *argv[])
             Q_UNREACHABLE();
     }
 
-    MainTask task(&a, cmdLineValues.serversFile, cmdLineValues.hubUrl);
+    MainTask task(&a, cmdLineValues.serversFile, cmdLineValues.restEndpoint, cmdLineValues.testOptionSet);
     QObject::connect(&task, &MainTask::finished, &a, &QCoreApplication::quit);
     QTimer::singleShot(0, &task, &MainTask::initialize);
 

@@ -2,10 +2,15 @@
 #include "loghandler.h"
 #include "customitems.h"
 #include "query.h"
+#include "restclient.h"
+#include "serverdefinition.h"
+#include "jsonconvert.h"
+#include <iostream>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <QTimer>
 
+using namespace std;
 using json = nlohmann::json;
 
 extern QList<ServerInfo *> serverList;
@@ -14,11 +19,12 @@ extern QRegularExpression chatRegex;
 extern QStringList blueTeams;
 extern QStringList redTeams;
 
-MainTask::MainTask(QObject *parent, QString serversFile, QUrl hubUrl) :
+MainTask::MainTask(QObject *parent, QString serversFile, QString restEndpoint, bool test) :
     QObject(parent)
 {
+    this->runTests = test;
     this->serversFile = serversFile;
-    this->hubUrl = hubUrl;
+    this->restEndpoint = restEndpoint;
     this->aboutToInterrupt = false;
 
     pPlayerQuery = NULL;
@@ -65,9 +71,16 @@ bool MainTask::handleSignal(int signal)
 
 void MainTask::initialize()
 {
+    if (this->runTests)
+    {
+        RunTests();
+        //emit finished();
+        return;
+    }
+
     displayMessage(ErrorLevel::Information, "Main task", "Starting...");
     displayMessage(ErrorLevel::Information, "Main task", QString("Reading servers from %1").arg(this->serversFile));
-    displayMessage(ErrorLevel::Information, "Main task", QString("Connecting to SignalR hub at %1").arg(this->hubUrl.toDisplayString()));
+    displayMessage(ErrorLevel::Information, "Main task", QString("Using rest endpoint at %1").arg(this->restEndpoint));
 
     std::ifstream serversFile(this->serversFile.toStdString());
 
@@ -80,15 +93,32 @@ void MainTask::initialize()
     {
         displayMessage(ErrorLevel::Information, "Main task", QString("Found %1 servers to monitor").arg(j.size()));
 
-        for (auto& server : j)
+        for (auto& item : j)
         {
-            QString serverName = server["Name"].get<std::string>().c_str();
-            displayMessage(ErrorLevel::Information, "Main task", QString("Adding server %1").arg(serverName));
-            addServerEntry(serverName);
+            ServerDefinition serverDef = item.get<ServerDefinition>();
+            displayMessage(ErrorLevel::Information, "Main task", QString("Adding server %1").arg(serverDef.name));
+            addServerEntry(serverDef);
         }
     }
 
     displayMessage(ErrorLevel::Information, "Main task", "Initialized");
+}
+
+void MainTask::RunTests()
+{
+    displayMessage(ErrorLevel::Information, "Running tests", "Starting...");
+
+    // displayMessage(ErrorLevel::Information, "Running tests", "Testing rest client...");
+    // rclient = new RestClient;
+    // connect(rclient, &RestClient::RestResponseReady, this, &MainTask::RestResponseReady);
+    // rclient->Post("http://localhost/api/test", QString("{ \"payload\": \"test\" }").toUtf8());
+    // displayMessage(ErrorLevel::Information, "Running tests", "Done testing rest client...");
+
+    displayMessage(ErrorLevel::Information, "Running tests", "Done running tests");
+}
+
+void MainTask::RestResponseReady(bool success, QByteArray response)
+{
 }
 
 void MainTask::displayMessage(ErrorLevel level, QString title, QString message)
@@ -117,22 +147,11 @@ void MainTask::displayMessage(ErrorLevel level, QString title, QString message)
         emit finished();
 }
 
-AddServerError MainTask::CheckServerList(QString server)
+AddServerError MainTask::CheckServerList(const ServerDefinition& serverDef)
 {
-    QStringList address = server.split(":");
     bool ok;
-
-    if(address.size() == 1)
-    {
-        address.append("27015");
-    }
-    else if (address.size() != 2)
-    {
-        return AddServerError_Invalid;
-    }
-
-    QString ip = address.at(0);
-    quint16 port = address.at(1).toInt(&ok);
+    QString hostOrIp = serverDef.ip;
+    quint16 port = serverDef.port.toInt(&ok);
     QHostAddress addr;
     AddServerError ret = AddServerError_None;
 
@@ -140,10 +159,12 @@ AddServerError MainTask::CheckServerList(QString server)
     {
         return AddServerError_Invalid;
     }
-    else if(!addr.setAddress(ip))
+    else if(!addr.setAddress(hostOrIp))
     {
+        hostOrIp = serverDef.host;
+
         //Check if it is a hostname
-        QUrl url = QUrl::fromUserInput(ip);
+        QUrl url = QUrl::fromUserInput(hostOrIp);
         if(url != QUrl())
         {
             ret = AddServerError_Hostname;
@@ -157,7 +178,7 @@ AddServerError MainTask::CheckServerList(QString server)
     for(int i = 0; i < serverList.size(); i++)
     {
         //Check if the ip or hostname already exists.
-        if(serverList.at(i)->hostPort == server)
+        if(serverList.at(i)->hostPort == QString("%1:%2").arg(hostOrIp, serverDef.port))
         {
             return AddServerError_AlreadyExists;
         }
@@ -166,9 +187,9 @@ AddServerError MainTask::CheckServerList(QString server)
     return ret;
 }
 
-ServerInfo *MainTask::AddServerToList(QString server, AddServerError *pError)
+ServerInfo *MainTask::AddServerToList(const ServerDefinition& serverDef, AddServerError *pError)
 {
-    AddServerError error = CheckServerList(server);
+    AddServerError error = CheckServerList(serverDef);
 
     if(pError != nullptr)
     {
@@ -183,7 +204,7 @@ ServerInfo *MainTask::AddServerToList(QString server, AddServerError *pError)
     bool isIP = (error == AddServerError_None);
     QueryState state = (error == AddServerError_None) ? QueryRunning : QueryResolving;
 
-    ServerInfo *info = new ServerInfo(server, state, isIP);
+    ServerInfo *info = new ServerInfo(serverDef, state, isIP);
 
     serverList.append(info);
 
@@ -280,6 +301,20 @@ void MainTask::parseLogLine(QString line, ServerInfo *info)
     }
 }
 
+void MainTask::PublishInfo(ServerInfo* info)
+{
+    if (!info) return;
+    if (restEndpoint.length() == 0) return;
+
+    json j = *info;
+    QString jsonString(j.dump().c_str());
+
+    //cout << jsonString.toStdString() << endl;
+
+    RestClient* client = new RestClient;
+    client->Post(restEndpoint, jsonString.toUtf8());
+}
+
 void MainTask::ServerInfoReady(InfoReply *reply, ServerTableIndexItem *indexCell, ServerInfo* serverInfo)
 {
     ServerInfo *info = indexCell ? indexCell->GetServerInfo() : serverInfo;
@@ -336,6 +371,7 @@ void MainTask::ServerInfoReady(InfoReply *reply, ServerTableIndexItem *indexCell
         info->currentPlayers = reply->players;
 
         cout << info->serverNameRich.toStdString() << " " << info->gameName.toStdString() << " " << info->playerCount.toStdString() << " - Ping: " << info->lastPing << "ms" << endl;
+        PublishInfo(info);
 
         delete reply;
     }
@@ -530,24 +566,21 @@ void MainTask::runCommand(ServerInfo *info, QString command)
     }
 }
 
-void MainTask::addServerEntry(QString server)
+void MainTask::addServerEntry(const ServerDefinition& serverDef)
 {
-    if(!server.isEmpty())
-    {
-        AddServerError error;
-        this->AddServerToList(server, &error);
+    AddServerError error;
+    this->AddServerToList(serverDef, &error);
 
-        if(error == AddServerError_None || error == AddServerError_Hostname)
-        {
-        }
-        else if(error == AddServerError_AlreadyExists)//Valid ip but exists.
-        {
-            displayMessage(ErrorLevel::Warning, "Add server", "Server already exists");
-        }
-        else
-        {
-            displayMessage(ErrorLevel::Warning, "Add server", "Invalid IP or Port");
-        }
+    if(error == AddServerError_None || error == AddServerError_Hostname)
+    {
+    }
+    else if(error == AddServerError_AlreadyExists)//Valid ip but exists.
+    {
+        displayMessage(ErrorLevel::Warning, "Add server", "Server already exists");
+    }
+    else
+    {
+        displayMessage(ErrorLevel::Warning, "Add server", "Invalid IP or Port");
     }
 }
 
