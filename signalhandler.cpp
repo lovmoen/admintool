@@ -1,4 +1,4 @@
-#include "SignalHandler.h"
+#include "signalhandler.h"
 #include <assert.h>
 #include <set>
 
