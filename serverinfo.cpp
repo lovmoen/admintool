@@ -55,6 +55,7 @@ ServerInfo::ServerInfo(const ServerDefinition& serverDef, QueryState state, bool
     this->joinSecret = serverDef.joinSecret;
     this->authenticationKey = serverDef.authenticationKey;
     this->gameServerLoginToken = serverDef.gameServerLoginToken;
+    this->hostname = serverDef.host;
 
     if(isIP)
     {
@@ -64,9 +65,9 @@ ServerInfo::ServerInfo(const ServerDefinition& serverDef, QueryState state, bool
     }
     else
     {
-        this->hostname = serverDef.host;
         this->hostPort = QString("%1:%2").arg(serverDef.host, serverDef.port);
     }
+
     this->port = serverDef.port.toInt();
 }
 

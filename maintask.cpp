@@ -309,7 +309,7 @@ void MainTask::PublishInfo(ServerInfo* info)
     json j = *info;
     QString jsonString(j.dump().c_str());
 
-    //cout << jsonString.toStdString() << endl;
+    cout << "Host: " << info->hostname.toStdString() << ", port: " << info->port << ", ip: " << info->host.toString().toStdString() << endl;
 
     RestClient* client = new RestClient;
     client->Post(restEndpoint, jsonString.toUtf8());

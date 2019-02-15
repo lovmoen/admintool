@@ -12,12 +12,13 @@ void from_json(const json& j, QString& s)
 
 void to_json(json& j, const QHostAddress& hostAddress)
 {
-    j = (unsigned int) hostAddress.toIPv4Address();
+    j = hostAddress.toString().toStdString();
 }
 
 void from_json(const json& j, QHostAddress& hostAddress)
 {
-    hostAddress.setAddress(j.get<unsigned int>());
+    QString s = QString::fromStdString(j.get<std::string>());
+    hostAddress.setAddress(s);
 }
 
 void to_json(json& j, const ServerInfo& info)
